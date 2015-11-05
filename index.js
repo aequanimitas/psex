@@ -1,6 +1,7 @@
 var http = require('http'),
     redis = require('redis'),
     moment = require('moment'),
+    Promise = require('bluebird'),
     redisClient = redis.createClient(),
     seed = require('./seed.json'),
     availableSymbols = seed.map(function(x) { return x.symbol }),
@@ -11,26 +12,31 @@ function threeMinGap(x,y) {
   return (x - y) > 18000;
 }
 
-function getStockQuote(symbol) {
-  http.request(bbUrl + symbol + ':' + marketSymbol, function(res) {
-   var data = '';
-   res
-   .on('data', function(c) {
-     data += c.toString();
-   })
-   .on('end', function() {
-     console.log(JSON.parse(data));
-     redisClient.set('psex:lastCheck', parseInt(moment(new Date()).format('x'), 10), function(err, reply) {
-       console.log('psex:lastCheck is ' + reply);
-       redisClient.quit();
-     });
-   })
-   .on('error', function(e) {
-     console.error(e);
-     redisClient.quit();
-   });
-  }).end();
-}
+var getStockQuote = Promise.method(function(url) {
+  return new Promise(function(resolve, reject) {
+    var request = http.request(url, function(response) {
+      var data = '';
+
+      response.on('data', function(c) {
+        data += c.toString();
+      });
+      response.on('error', function(e) {
+        console.log('Error: ' + e);
+        reject(e);
+      });
+      response.on('end', function() {
+        resolve(data); 
+      });
+    });
+
+    request.on('error', function(error) {
+        console.log('Problem with request:', error.message);
+        reject(error);
+    });
+
+    request.end();
+  });
+});
 
 function symbolExists(x) {
   return availableSymbols.indexOf(x.toUpperCase()) > -1
@@ -62,7 +68,18 @@ function init() {
       redisClient.get('psex:lastCheck', function(err, reply) {
         if (!err) {
           if(threeMinGap(parseInt(moment(new Date()).format('x'), 10), parseInt(reply, 10))) {
-            getStockQuote(x);
+            getStockQuote(
+              bbUrl + x + ':' + marketSymbol
+            ).then(function(data) {
+              console.log(JSON.parse(data));
+              redisClient.set('psex:lastCheck', parseInt(moment(new Date()).format('x'), 10), function(err, reply) {
+                console.log('psex:lastCheck is ' + reply);
+              });
+            }).catch(function (e) {
+              console.error('Error: ' + e);
+            }).finally(function (e) {
+              redisClient.quit();
+            });
           } else {
             console.log('Wait for three more minutes');
             redisClient.quit();
@@ -77,7 +94,7 @@ function init() {
       redisClient.quit();
     }
   } else {
-    redisClient.quit(); 
+    redisClient.quit();
   }
 }
 
