@@ -1,14 +1,16 @@
 var http = require('http'),
     redis = require('redis'),
     moment = require('moment'),
-    redisClient = redis.createClient();
+    redisClient = redis.createClient(),
+    seed = require('./seed.json'),
+    availableSymbols = seed.map(function(x) { return x.symbol });
 
 function threeMinGap(x,y) {
   return (x - y) > 18000;
 }
 
-function getStockQuote() {
-  http.request('http://www.bloomberg.com/markets/chart/data/1D/TAPET:PM', function(res) {
+function getStockQuote(symbol) {
+  http.request('http://www.bloomberg.com/markets/chart/data/1D/' + symbol + ':PM', function(res) {
    var data = '';
    res
    .on('data', function(c) {
@@ -25,23 +27,29 @@ function getStockQuote() {
      console.error(e);
      redisClient.quit();
    });
- }).end();
+  }).end();
+}
+
+function symbolExists(x) {
+  return availableSymbols.indexOf(x.toUpperCase()) > -1
 }
 
 function init() {
   var x = process.argv.slice(2)[0];
-  redisClient.get('psex:lastCheck', function(err, reply) {
-    if (!err) {
-      if(threeMinGap(parseInt(moment(new Date()).format('x'), 10), parseInt(reply, 10))) {
-        getStockQuote();
+  if(symbolExists(x)) {
+    redisClient.get('psex:lastCheck', function(err, reply) {
+      if (!err) {
+        if(threeMinGap(parseInt(moment(new Date()).format('x'), 10), parseInt(reply, 10))) {
+          getStockQuote(x);
+        } else {
+          console.log('Wait for three more minutes');
+          redisClient.quit();
+        }
       } else {
-        console.log('Wait for three more minutes');
-        redisClient.quit();
+        console.log('There was an error: ' + err);
       }
-    } else {
-      console.log('There was an error: ' + err);
-    }
-  });
+    });
+  }
 }
 
 init();
