@@ -95,7 +95,10 @@ init()
     if (y[0]) {
       return this.symbol;
     } else {
-      var seconds = (parseInt(moment(new Date()).format('x'),10) - y[1]) / 1000;
+      var seconds = '' + 60 
+                    - ((parseInt(moment(new Date()).format('x'),10) - y[1]) / 1000)
+                    .toString()
+                    .split('.')[0];
       return Promise.reject('Wait for ' + seconds + ' seconds before issuing a new request'); 
     }
   })
