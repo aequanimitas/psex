@@ -25,7 +25,7 @@ var getStockQuote = Promise.method(function(url) {
         reject(e);
       });
       response.on('end', function() {
-        resolve(data); 
+        resolve(data);
       });
     });
 
@@ -61,41 +61,55 @@ function argHandler() {
   }
 }
 
-function init() {
-  var x = argHandler();
-  if (x) {
+var init = Promise.method(function() {
+  return new Promise(function(resolve, reject) {
+    var x = argHandler();
+    if (x) {
+      resolve(x);
+    } else {
+      reject(x);
+    }
+  });
+});
+
+Promise.promisifyAll(redis.RedisClient.prototype);
+
+init()
+  .then(function(x) {
     if(symbolExists(x)) {
-      redisClient.get('psex:lastCheck', function(err, reply) {
-        if (!err) {
-          if(threeMinGap(parseInt(moment(new Date()).format('x'), 10), parseInt(reply, 10))) {
-            getStockQuote(
-              bbUrl + x + ':' + marketSymbol
-            ).then(function(data) {
-              console.log(JSON.parse(data));
-              redisClient.set('psex:lastCheck', parseInt(moment(new Date()).format('x'), 10), function(err, reply) {
-                console.log('psex:lastCheck is ' + reply);
-              });
-            }).catch(function (e) {
-              console.error('Error: ' + e);
-            }).finally(function (e) {
-              redisClient.quit();
-            });
-          } else {
-            console.log('Wait for three more minutes');
-            redisClient.quit();
-          }
-        } else {
-          console.log('There was an error: ' + err);
-          redisClient.quit();
-        }
-      });
+      return x; 
     } else {
       usage();
-      redisClient.quit();
+      return 'Key doesn\'t exist';
     }
-  } else {
-    redisClient.quit();
-  }
-}
-
-init();
+  })
+  .then(function(x) {
+    this.symbol = x;
+    return redisClient.getAsync('psex:lastCheck');
+  })
+  .then(function(r) {
+    return threeMinGap(parseInt(moment(new Date()).format('x'), 10), parseInt(r, 10));
+  })
+  .then(function(y) {
+    if (y) {
+      return this.symbol;
+    } else {
+      return Promise.reject('Wait for 3 minutes');
+    }
+  })
+  .then(function(symbol) {
+    return getStockQuote(bbUrl + symbol + ':' + marketSymbol);
+  })
+  .then(function(data){
+    console.log(JSON.parse(data));
+    return JSON.parse(data);
+  }) 
+  .then(function(x) {
+    return redisClient.setAsync('psex:lastCheck', parseInt(moment(new Date()).format('x'), 10))
+  })
+  .catch(function(e) {
+    console.error(e);
+  })
+  .finally(function() {
+  redisClient.quit();
+});
