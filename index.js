@@ -1,15 +1,17 @@
-var http = require('http'),
-    redis = require('redis'),
-    moment = require('moment'),
-    Promise = require('bluebird'),
-    redisClient = redis.createClient(),
-    seed = require('./seed.json'),
+var http             = require('http'),
+    redis            = require('redis'),
+    moment           = require('moment'),
+    Promise          = require('bluebird'),
+    redisClient      = redis.createClient(),
+    seed             = require('./seed.json'),
     availableSymbols = seed.map(function(x) { return x.symbol }),
-    bbUrl = 'http://www.bloomberg.com/markets/chart/data/1D/',
-    marketSymbol = 'PM';
+    bbUrl            = 'http://www.bloomberg.com/markets/chart/data/1D/',
+    marketSymbol     = 'PM';
+
+Promise.promisifyAll(redis.RedisClient.prototype);
 
 function threeMinGap(x,y) {
-  return (x - y) > 18000;
+  return (x - y) > 60000;
 }
 
 var getStockQuote = Promise.method(function(url) {
@@ -72,7 +74,6 @@ var init = Promise.method(function() {
   });
 });
 
-Promise.promisifyAll(redis.RedisClient.prototype);
 
 init()
   .then(function(x) {
@@ -88,13 +89,14 @@ init()
     return redisClient.getAsync('psex:lastCheck');
   })
   .then(function(r) {
-    return threeMinGap(parseInt(moment(new Date()).format('x'), 10), parseInt(r, 10));
+    return [threeMinGap(parseInt(moment(new Date()).format('x'), 10), parseInt(r, 10)), r]
   })
   .then(function(y) {
-    if (y) {
+    if (y[0]) {
       return this.symbol;
     } else {
-      return Promise.reject('Wait for 3 minutes');
+      var seconds = (parseInt(moment(new Date()).format('x'),10) - y[1]) / 1000;
+      return Promise.reject('Wait for ' + seconds + ' seconds before issuing a new request'); 
     }
   })
   .then(function(symbol) {
