@@ -1,0 +1,17 @@
+{
+  "name": "psex",
+  "version": "0.0.1",
+  "description": "ph stock exchange",
+  "main": "index.js",
+  "dependencies": {
+    "bookshelf": "^0.9.0",
+    "moment": "^2.10.6",
+    "redis": "^2.3.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "hta",
+  "license": "MIT"
+}
