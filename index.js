@@ -80,7 +80,7 @@ init()
       return x; 
     } else {
       usage();
-      return 'Key doesn\'t exist';
+      return Promise.reject('Key doesn\'t exist');
     }
   })
   .then(function(x) {
