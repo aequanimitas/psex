@@ -10,10 +10,6 @@ var http             = require('http'),
 
 Promise.promisifyAll(redis.RedisClient.prototype);
 
-function threeMinGap(x,y) {
-  return (x - y) > 60000;
-}
-
 var getStockQuote = Promise.method(function(url) {
   return new Promise(function(resolve, reject) {
     var request = http.request(url, function(response) {
@@ -89,17 +85,18 @@ init()
     return redisClient.getAsync('psex:lastCheck');
   })
   .then(function(r) {
-    return [threeMinGap(parseInt(moment(new Date()).format('x'), 10), parseInt(r, 10)), r]
+    // timeout for 1 minute
+    return [((moment(new Date()) - r) > 60000 ), r]
   })
   .then(function(y) {
-    if (y[0]) {
+    if(y[0]) {
       return this.symbol;
     } else {
       var seconds = '' + 60 
-                    - ((parseInt(moment(new Date()).format('x'),10) - y[1]) / 1000)
+                    - (moment(new Date()).subtract(y[1]) / 1000)
                     .toString()
                     .split('.')[0];
-      return Promise.reject('Wait for ' + seconds + ' seconds before issuing a new request'); 
+      return Promise.reject('Wait for ' + seconds + ' seconds before issuing a new request');
     }
   })
   .then(function(symbol) {
