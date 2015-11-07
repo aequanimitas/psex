@@ -73,12 +73,10 @@ var init = Promise.method(function() {
 
 init()
   .then(function(x) {
-    if(symbolExists(x)) {
-      return x; 
-    } else {
-      usage();
-      return Promise.reject('Key doesn\'t exist');
-    }
+    return symbolExists(x) ? x : (
+          usage(),
+          Promise.reject('Key doesn\'t exist', usage)
+        )
   })
   .then(function(x) {
     this.symbol = x;
@@ -89,15 +87,9 @@ init()
     return [((moment(new Date()) - r) > 60000 ), r]
   })
   .then(function(y) {
-    if(y[0]) {
-      return this.symbol;
-    } else {
-      var seconds = '' + 60 
-                    - (moment(new Date()).subtract(y[1]) / 1000)
-                    .toString()
-                    .split('.')[0];
-      return Promise.reject('Wait for ' + seconds + ' seconds before issuing a new request');
-    }
+    var seconds = (60 - moment(new Date()).subtract(y[1]) / 1000).toString().split('.')[0];
+    return y[0] ? this.symbol : 
+                  Promise.reject(`Wait for ${ seconds } seconds before issung a new request`);
   })
   .then(function(symbol) {
     return getStockQuote(bbUrl + symbol + ':' + marketSymbol);
@@ -107,11 +99,11 @@ init()
     return JSON.parse(data);
   }) 
   .then(function(x) {
-    return redisClient.setAsync('psex:lastCheck', parseInt(moment(new Date()).format('x'), 10))
+    return redisClient.setAsync('psex:lastCheck', moment(new Date()).format('x'));
   })
   .catch(function(e) {
     console.error(e);
   })
   .finally(function() {
-  redisClient.quit();
-});
+    redisClient.quit();
+  });
