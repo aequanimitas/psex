@@ -95,7 +95,15 @@ init()
     return getStockQuote(bbUrl + symbol + ':' + marketSymbol);
   })
   .then(function(data){
-    console.log(JSON.parse(data));
+    var arr = JSON.parse(data);
+    var model = {
+      'Symbol': this.symbol,
+      'marketOpen': moment(arr.exch_open_time).format(),
+      'marketClose': moment(arr.exch_close_time).format(),
+      'lastTradingPrice': arr.data_values[arr.data_values.length - 1][1],
+      'openPrice': arr.data_values[0][1],
+    };
+    console.dir(model);
     return JSON.parse(data);
   }) 
   .then(function(x) {
