@@ -19,7 +19,7 @@ var getStockQuote = Promise.method(function(url) {
         data += c.toString();
       });
       response.on('error', function(e) {
-        console.log('Error: ' + e);
+        console.log(`Error: ${e}`);
         reject(e);
       });
       response.on('end', function() {
@@ -28,7 +28,7 @@ var getStockQuote = Promise.method(function(url) {
     });
 
     request.on('error', function(error) {
-        console.log('Problem with request:', error.message);
+        console.log(`Problem with request: ${error.message}`);
         reject(error);
     });
 
@@ -43,7 +43,7 @@ function symbolExists(x) {
 function usage() {
   var message = 'Usage: \n';
   seed.forEach(function(x) {
-    message += x.symbol + '\t' + x.companyName + '\t' + x.sector + '\n';
+    message += `${x.symbol} \t ${x.companyName} \t ${x.sector}\n`;
   });
   console.log(message);
 }
@@ -75,7 +75,7 @@ init()
   .then(function(x) {
     return symbolExists(x) ? x : (
           usage(),
-          Promise.reject('Key doesn\'t exist', usage)
+          Promise.reject('Key doesn\'t exist')
         )
   })
   .then(function(x) {
@@ -84,10 +84,10 @@ init()
   })
   .then(function(r) {
     // timeout for 1 minute
-    return [((moment(new Date()) - r) > 60000 ), r]
+    return [((moment(new Date()) - r)) > 60000, r]
   })
   .then(function(y) {
-    var seconds = (60 - moment(new Date()).subtract(y[1]) / 1000).toString().split('.')[0];
+    var seconds = (60 - moment(new Date()).subtract(y[1]).second()).toString().split('.')[0];
     return y[0] ? this.symbol : 
                   Promise.reject(`Wait for ${ seconds } seconds before issung a new request`);
   })
