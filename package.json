@@ -9,9 +9,12 @@
     "moment": "^2.10.6",
     "redis": "^2.3.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "eslint": "^1.9.0"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint index.js"
   },
   "author": "hta",
   "license": "MIT"
