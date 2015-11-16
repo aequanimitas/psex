@@ -92,7 +92,8 @@ init()
                   Promise.reject(`Wait for ${ seconds } seconds before issung a new request`);
   })
   .then(function(symbol) {
-    return getStockQuote(bbUrl + symbol + ':' + marketSymbol);
+    return getStockQuote(`${bbUrl}${symbol}:${marketSymbol}`);
+
   })
   .then(function(data){
     var arr = JSON.parse(data);
