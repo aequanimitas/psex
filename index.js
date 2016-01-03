@@ -4,6 +4,7 @@ var http             = require('http'),
     Promise          = require('bluebird'),
     redisClient      = redis.createClient(),
     seed             = require('./seed.json'),
+    appInfo             = require('./package.json'),
     availableSymbols = seed.map(function(x) { return x.symbol }),
     bbUrl            = 'http://www.bloomberg.com/markets/chart/data/1D/',
     marketSymbol     = 'PM';
@@ -41,7 +42,7 @@ function symbolExists(x) {
 }
 
 function usage() {
-  var message = 'Usage: \n';
+  var message = `${appInfo.name} ${appInfo.version}\n` + 'Usage: \n';
   seed.forEach(function(x) {
     message += `${x.symbol} \t ${x.companyName} \t ${x.sector}\n`;
   });
